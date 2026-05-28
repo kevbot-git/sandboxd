@@ -1,0 +1,72 @@
+# https://goreleaser.com/customization
+#
+# This config is set up but the release workflow is NOT wired yet — the
+# kevbot-git/homebrew-boxd tap repo doesn't exist, and no CI job calls
+# `goreleaser release`. For now we use `goreleaser build --snapshot --clean`
+# to verify the build pipeline locally, and rely on plain `go build` for
+# day-to-day development.
+version: 2
+
+project_name: boxd
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: boxd
+    main: .
+    binary: boxd
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/kevbot-git/boxd/cmd.version={{ .Version }}
+
+archives:
+  - id: boxd
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - LICENSE*
+      - README*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: '{{ incpatch .Version }}-snapshot'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+
+# Homebrew tap publication — disabled implicitly until the tap repo
+# exists. Once kevbot-git/homebrew-boxd is created and a GitHub Actions
+# release workflow is set up, this section will start publishing.
+brews:
+  - name: boxd
+    repository:
+      owner: kevbot-git
+      name: homebrew-boxd
+    homepage: https://github.com/kevbot-git/boxd
+    description: Sandbox-kit installer and runner for sbx
+    license: Apache-2.0
+    install: |
+      bin.install "boxd"
+    test: |
+      system "#{bin}/boxd --version"
