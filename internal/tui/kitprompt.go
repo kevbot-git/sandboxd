@@ -8,7 +8,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kevbot-git/boxd/internal/kits"
+	"github.com/kevbot-git/sandboxd/internal/kits"
 )
 
 // ErrCancelled is returned when the user aborts the prompt (e.g. Ctrl+C).

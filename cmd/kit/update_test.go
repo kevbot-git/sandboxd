@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kevbot-git/boxd/internal/lockfile"
+	"github.com/kevbot-git/sandboxd/internal/lockfile"
 )
 
 // runGit is a helper that runs git with the given args and fails the test on error.

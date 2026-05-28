@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kevbot-git/boxd/internal/debug"
+	"github.com/kevbot-git/sandboxd/internal/debug"
 )
 
 // ── Pure argv tests ───────────────────────────────────────────────────────────

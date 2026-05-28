@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kevbot-git/boxd/internal/kits"
+	"github.com/kevbot-git/sandboxd/internal/kits"
 )
 
 func TestPromptKitSelection_EmptyAvailableErrors(t *testing.T) {

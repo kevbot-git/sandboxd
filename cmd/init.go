@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kevbot-git/boxd/internal/kits"
-	"github.com/kevbot-git/boxd/internal/runner"
-	"github.com/kevbot-git/boxd/internal/sbx"
-	"github.com/kevbot-git/boxd/internal/selections"
-	"github.com/kevbot-git/boxd/internal/tui"
+	"github.com/kevbot-git/sandboxd/internal/kits"
+	"github.com/kevbot-git/sandboxd/internal/runner"
+	"github.com/kevbot-git/sandboxd/internal/sbx"
+	"github.com/kevbot-git/sandboxd/internal/selections"
+	"github.com/kevbot-git/sandboxd/internal/tui"
 	"github.com/spf13/cobra"
 )
 

@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/kevbot-git/boxd/internal/debug"
+	"github.com/kevbot-git/sandboxd/internal/debug"
 )
 
 // buildCloneArgs returns the argv slice for `git clone sourceURL destDir`.

@@ -6,8 +6,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/kevbot-git/boxd/internal/runner"
-	"github.com/kevbot-git/boxd/internal/sbx"
+	"github.com/kevbot-git/sandboxd/internal/runner"
+	"github.com/kevbot-git/sandboxd/internal/sbx"
 	"github.com/spf13/cobra"
 )
 

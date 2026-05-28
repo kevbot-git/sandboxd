@@ -8,8 +8,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/kevbot-git/boxd/internal/git"
-	"github.com/kevbot-git/boxd/internal/lockfile"
+	"github.com/kevbot-git/sandboxd/internal/git"
+	"github.com/kevbot-git/sandboxd/internal/lockfile"
 	"github.com/spf13/cobra"
 )
 

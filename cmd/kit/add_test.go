@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kevbot-git/boxd/internal/lockfile"
+	"github.com/kevbot-git/sandboxd/internal/lockfile"
 )
 
 // redirectHome redirects os.UserHomeDir() results to a temp dir so tests

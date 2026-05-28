@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/kevbot-git/boxd/internal/debug"
+	"github.com/kevbot-git/sandboxd/internal/debug"
 )
 
 // BuildInit returns the argv (excluding the leading "sbx") for creating a

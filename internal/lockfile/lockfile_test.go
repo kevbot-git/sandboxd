@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kevbot-git/boxd/internal/debug"
+	"github.com/kevbot-git/sandboxd/internal/debug"
 )
 
 // knownTime is used to produce deterministic JSON in schema lock-in tests.

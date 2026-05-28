@@ -1,4 +1,4 @@
-module github.com/kevbot-git/boxd
+module github.com/kevbot-git/sandboxd
 
 go 1.24.4
 

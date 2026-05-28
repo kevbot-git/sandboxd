@@ -1,6 +1,6 @@
 package main
 
-import "github.com/kevbot-git/boxd/cmd"
+import "github.com/kevbot-git/sandboxd/cmd"
 
 func main() {
 	cmd.Execute()

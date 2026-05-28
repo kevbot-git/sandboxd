@@ -4,15 +4,17 @@ A light wrapper over Docker's `sbx`, with quality-of-life improvements and a kit
 
 `boxd` (short for *Sandbox'd*, and easier to type) is a single CLI that installs sandbox **Kits** from git repos and runs `sbx` sandboxes with them. It's an installer + orchestrator on top of `sbx` — Kits themselves are plain `sbx` mixins and stay usable without `boxd`.
 
+The project is called `sandboxd` (the repo, the Homebrew tap, the Go module); the binary it installs is `boxd` — same way `brew install aws-cli` gives you the `aws` command.
+
 ## Install
 
 Requires [`sbx`](https://github.com/docker/sbx-releases) on your `PATH`.
 
 ```bash
-go install github.com/kevbot-git/boxd@latest
+go install github.com/kevbot-git/sandboxd/cmd/boxd@latest
 ```
 
-A Homebrew tap is planned but not yet wired up.
+A Homebrew tap (`kevbot-git/homebrew-sandboxd`) is planned but not yet wired up. Once it ships, `brew install kevbot-git/sandboxd/sandboxd` will install the `boxd` binary.
 
 ## Quick start
 

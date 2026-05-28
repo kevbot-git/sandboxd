@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/kevbot-git/boxd/cmd/kit"
+	"github.com/kevbot-git/sandboxd/cmd/kit"
 )
 
 func init() {

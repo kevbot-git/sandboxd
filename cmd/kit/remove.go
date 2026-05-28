@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kevbot-git/boxd/internal/git"
-	"github.com/kevbot-git/boxd/internal/lockfile"
-	"github.com/kevbot-git/boxd/internal/repo"
-	"github.com/kevbot-git/boxd/internal/selections"
+	"github.com/kevbot-git/sandboxd/internal/git"
+	"github.com/kevbot-git/sandboxd/internal/lockfile"
+	"github.com/kevbot-git/sandboxd/internal/repo"
+	"github.com/kevbot-git/sandboxd/internal/selections"
 	"github.com/spf13/cobra"
 )
 

@@ -1,21 +1,26 @@
 # https://goreleaser.com/customization
 #
-# This config is set up but the release workflow is NOT wired yet — the
-# kevbot-git/homebrew-boxd tap repo doesn't exist, and no CI job calls
-# `goreleaser release`. For now we use `goreleaser build --snapshot --clean`
-# to verify the build pipeline locally, and rely on plain `go build` for
-# day-to-day development.
+# The project / repo / brew formula are all named `sandboxd`; the binary it
+# installs is `boxd`. See README for the rationale (think `brew install
+# aws-cli` installing the `aws` binary).
+#
+# Release pipeline status: tag-push CI (.github/workflows/release.yml) calls
+# `goreleaser release --clean`, but Homebrew tap publication still depends on
+# the kevbot-git/homebrew-sandboxd repo existing and the
+# HOMEBREW_TAP_GITHUB_TOKEN repo secret being set. For day-to-day development
+# use plain `go build ./cmd/boxd`; to verify the build pipeline locally use
+# `goreleaser release --snapshot --clean`.
 version: 2
 
-project_name: boxd
+project_name: sandboxd
 
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - id: boxd
-    main: .
+  - id: sandboxd
+    main: ./cmd/boxd
     binary: boxd
     env:
       - CGO_ENABLED=0
@@ -26,10 +31,10 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/kevbot-git/boxd/cmd.version={{ .Version }}
+      - -s -w -X github.com/kevbot-git/sandboxd/cmd.version={{ .Version }}
 
 archives:
-  - id: boxd
+  - id: sandboxd
     format: tar.gz
     name_template: >-
       {{ .ProjectName }}_
@@ -56,14 +61,17 @@ changelog:
       - '^chore:'
 
 # Homebrew tap publication — disabled implicitly until the tap repo
-# exists. Once kevbot-git/homebrew-boxd is created and a GitHub Actions
-# release workflow is set up, this section will start publishing.
+# exists. Once kevbot-git/homebrew-sandboxd is created and the release
+# workflow runs against a tag, this section will start publishing
+# `Formula/sandboxd.rb` to that tap. The formula installs a binary called
+# `boxd` (see `install:` below).
 brews:
-  - name: boxd
+  - name: sandboxd
     repository:
       owner: kevbot-git
-      name: homebrew-boxd
-    homepage: https://github.com/kevbot-git/boxd
+      name: homebrew-sandboxd
+      token: '{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}'
+    homepage: https://github.com/kevbot-git/sandboxd
     description: Sandbox-kit installer and runner for sbx
     license: Apache-2.0
     install: |

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kevbot-git/boxd/internal/git"
-	"github.com/kevbot-git/boxd/internal/kits"
-	"github.com/kevbot-git/boxd/internal/lockfile"
-	"github.com/kevbot-git/boxd/internal/repo"
+	"github.com/kevbot-git/sandboxd/internal/git"
+	"github.com/kevbot-git/sandboxd/internal/kits"
+	"github.com/kevbot-git/sandboxd/internal/lockfile"
+	"github.com/kevbot-git/sandboxd/internal/repo"
 	"github.com/spf13/cobra"
 )
 

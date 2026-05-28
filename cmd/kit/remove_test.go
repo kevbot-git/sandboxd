@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kevbot-git/boxd/internal/lockfile"
-	"github.com/kevbot-git/boxd/internal/selections"
+	"github.com/kevbot-git/sandboxd/internal/lockfile"
+	"github.com/kevbot-git/sandboxd/internal/selections"
 )
 
 // makeSelectionsStore creates a selections.json at selPath with the given data.

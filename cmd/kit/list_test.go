@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kevbot-git/boxd/internal/lockfile"
+	"github.com/kevbot-git/sandboxd/internal/lockfile"
 )
 
 // makeStore creates and saves a lockfile at lockPath with the given entries,

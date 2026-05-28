@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/kevbot-git/boxd/internal/debug"
+	"github.com/kevbot-git/sandboxd/internal/debug"
 )
 
 // Sandbox is one row from `sbx ls`. Only the fields boxd cares about are

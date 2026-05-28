@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kevbot-git/boxd/internal/git"
-	"github.com/kevbot-git/boxd/internal/runner"
-	"github.com/kevbot-git/boxd/internal/sbx"
+	"github.com/kevbot-git/sandboxd/internal/git"
+	"github.com/kevbot-git/sandboxd/internal/runner"
+	"github.com/kevbot-git/sandboxd/internal/sbx"
 	"github.com/spf13/cobra"
 )
 

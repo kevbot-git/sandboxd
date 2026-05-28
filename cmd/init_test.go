@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kevbot-git/boxd/internal/selections"
+	"github.com/kevbot-git/sandboxd/internal/selections"
 )
 
 // makeKitDir creates a directory that passes validateKitPath: a real
