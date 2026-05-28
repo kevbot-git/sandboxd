@@ -67,7 +67,7 @@ func DefaultRoot() (string, error) {
 	return filepath.Join(home, ".boxd", "kits"), nil
 }
 
-const maxDiscoveryDepth = 4
+const maxDiscoveryDepth = 6
 
 // Discover walks root looking for directories that contain a spec.yaml.
 // Each such directory is reported as one KitInfo, with Name set to the

@@ -421,7 +421,8 @@ func TestRunRemove_InvalidAddress(t *testing.T) {
 }
 
 // TestRunRemove_LocalRepo_HappyPath verifies that removing a local repo entry
-// deletes the symlink at ~/.boxd/kits/<basename> but leaves the source dir intact.
+// deletes the symlink at ~/.boxd/kits/local/<basename> but leaves the source
+// directory intact.
 func TestRunRemove_LocalRepo_HappyPath(t *testing.T) {
 	home := redirectHome(t)
 	lockPath, selPath := defaultPaths(home)
@@ -435,19 +436,19 @@ func TestRunRemove_LocalRepo_HappyPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create the symlink at ~/.boxd/kits/my-kits pointing to srcDir.
-	kitsDir := filepath.Join(home, ".boxd", "kits")
-	if err := os.MkdirAll(kitsDir, 0o755); err != nil {
+	// Create the symlink at ~/.boxd/kits/local/my-kits pointing to srcDir.
+	localDir := filepath.Join(home, ".boxd", "kits", "local")
+	if err := os.MkdirAll(localDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	symlinkPath := filepath.Join(kitsDir, "my-kits")
+	symlinkPath := filepath.Join(localDir, "my-kits")
 	if err := os.Symlink(srcDir, symlinkPath); err != nil {
 		t.Fatal(err)
 	}
 
-	// Write lockfile entry with InstallMode: "local", key = basename.
+	// Write lockfile entry with InstallMode: "local", key = "local/<basename>".
 	makeStore(t, lockPath, map[string]lockfile.Entry{
-		"my-kits": {
+		"local/my-kits": {
 			SourceURL:   srcDir,
 			InstallDir:  symlinkPath,
 			InstallMode: "local",
@@ -455,7 +456,7 @@ func TestRunRemove_LocalRepo_HappyPath(t *testing.T) {
 	})
 
 	var stderr bytes.Buffer
-	if err := runRemove(&stderr, lockPath, selPath, "my-kits"); err != nil {
+	if err := runRemove(&stderr, lockPath, selPath, "local/my-kits"); err != nil {
 		t.Fatalf("runRemove local happy path: %v", err)
 	}
 
@@ -474,7 +475,7 @@ func TestRunRemove_LocalRepo_HappyPath(t *testing.T) {
 
 	// Lockfile entry must be gone.
 	s, _ := lockfile.Load(lockPath)
-	if _, ok := s.Get("my-kits"); ok {
+	if _, ok := s.Get("local/my-kits"); ok {
 		t.Error("lockfile entry should be deleted after local remove")
 	}
 }
@@ -486,11 +487,11 @@ func TestRunRemove_LocalRepo_AlreadyMissingSymlink(t *testing.T) {
 	lockPath, selPath := defaultPaths(home)
 
 	srcDir := filepath.Join(home, "src", "my-kits")
-	symlinkPath := filepath.Join(home, ".boxd", "kits", "my-kits")
+	symlinkPath := filepath.Join(home, ".boxd", "kits", "local", "my-kits")
 
 	// Do NOT create the symlink — it's already missing.
 	makeStore(t, lockPath, map[string]lockfile.Entry{
-		"my-kits": {
+		"local/my-kits": {
 			SourceURL:   srcDir,
 			InstallDir:  symlinkPath,
 			InstallMode: "local",
@@ -498,7 +499,7 @@ func TestRunRemove_LocalRepo_AlreadyMissingSymlink(t *testing.T) {
 	})
 
 	var stderr bytes.Buffer
-	err := runRemove(&stderr, lockPath, selPath, "my-kits")
+	err := runRemove(&stderr, lockPath, selPath, "local/my-kits")
 	if err != nil {
 		t.Fatalf("runRemove with missing symlink should return nil, got: %v", err)
 	}
@@ -511,7 +512,7 @@ func TestRunRemove_LocalRepo_AlreadyMissingSymlink(t *testing.T) {
 
 	// Lockfile entry must be gone.
 	s, _ := lockfile.Load(lockPath)
-	if _, ok := s.Get("my-kits"); ok {
+	if _, ok := s.Get("local/my-kits"); ok {
 		t.Error("lockfile entry should be deleted even when symlink was already missing")
 	}
 }
@@ -533,17 +534,17 @@ func TestRunRemove_LocalRepo_SourceUntouched(t *testing.T) {
 		}
 	}
 
-	kitsDir := filepath.Join(home, ".boxd", "kits")
-	if err := os.MkdirAll(kitsDir, 0o755); err != nil {
+	localDir := filepath.Join(home, ".boxd", "kits", "local")
+	if err := os.MkdirAll(localDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	symlinkPath := filepath.Join(kitsDir, "my-kits")
+	symlinkPath := filepath.Join(localDir, "my-kits")
 	if err := os.Symlink(srcDir, symlinkPath); err != nil {
 		t.Fatal(err)
 	}
 
 	makeStore(t, lockPath, map[string]lockfile.Entry{
-		"my-kits": {
+		"local/my-kits": {
 			SourceURL:   srcDir,
 			InstallDir:  symlinkPath,
 			InstallMode: "local",
@@ -551,7 +552,7 @@ func TestRunRemove_LocalRepo_SourceUntouched(t *testing.T) {
 	})
 
 	var stderr bytes.Buffer
-	if err := runRemove(&stderr, lockPath, selPath, "my-kits"); err != nil {
+	if err := runRemove(&stderr, lockPath, selPath, "local/my-kits"); err != nil {
 		t.Fatalf("runRemove: %v", err)
 	}
 

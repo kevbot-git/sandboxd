@@ -338,8 +338,8 @@ func TestRunAdd_AlreadyInstalled(t *testing.T) {
 func TestRunAdd_InstallDirExists(t *testing.T) {
 	home := redirectHome(t)
 
-	// Create the would-be install dir.
-	installDir := filepath.Join(home, ".boxd", "kits", "sbx-kits")
+	// Create the would-be install dir at the new canonical-key layout.
+	installDir := filepath.Join(home, ".boxd", "kits", "github.com", "example", "sbx-kits")
 	if err := os.MkdirAll(installDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -396,21 +396,23 @@ func makeLocalKitRepo(t *testing.T) string {
 }
 
 // TestRunAddLocal_HappyPath verifies that `boxd kit add --local <path>` creates
-// a symlink at ~/.boxd/kits/<basename>, populates the lockfile with InstallMode:
-// "local", SourceURL = absolute path, Commit = HEAD SHA, and discovers kits.
+// a symlink at ~/.boxd/kits/local/<basename>, populates the lockfile with key
+// "local/<basename>" and InstallMode: "local", SourceURL = absolute path,
+// Commit = HEAD SHA, and discovers kits.
 func TestRunAddLocal_HappyPath(t *testing.T) {
 	home := redirectHome(t)
 	lockPath := filepath.Join(home, ".boxd", "boxd.lock.json")
 
 	srcDir := makeLocalKitRepo(t)
 	basename := filepath.Base(srcDir)
+	key := "local/" + basename
 
-	if err := runAddLocal(srcDir); err != nil {
+	if err := runAddLocal(srcDir, ""); err != nil {
 		t.Fatalf("runAddLocal: %v", err)
 	}
 
-	// Symlink must exist at ~/.boxd/kits/<basename>.
-	symlinkPath := filepath.Join(home, ".boxd", "kits", basename)
+	// Symlink must exist at ~/.boxd/kits/local/<basename>.
+	symlinkPath := filepath.Join(home, ".boxd", "kits", "local", basename)
 	info, err := os.Lstat(symlinkPath)
 	if err != nil {
 		t.Fatalf("symlink not found at %s: %v", symlinkPath, err)
@@ -428,11 +430,11 @@ func TestRunAddLocal_HappyPath(t *testing.T) {
 		t.Errorf("symlink target: got %q, want %q", target, srcDir)
 	}
 
-	// Lockfile must have a local entry.
+	// Lockfile must have a local entry keyed local/<basename>.
 	s, _ := lockfile.Load(lockPath)
-	entry, ok := s.Get(basename)
+	entry, ok := s.Get(key)
 	if !ok {
-		t.Fatalf("lockfile entry missing for key %q", basename)
+		t.Fatalf("lockfile entry missing for key %q", key)
 	}
 	if entry.InstallMode != "local" {
 		t.Errorf("InstallMode: got %q, want %q", entry.InstallMode, "local")
@@ -460,7 +462,7 @@ func TestRunAddLocal_NonGitDirectory(t *testing.T) {
 	dir := t.TempDir()
 	// Not a git repo (no .git).
 
-	err := runAddLocal(dir)
+	err := runAddLocal(dir, "")
 	if err == nil {
 		t.Fatal("expected error for non-git directory")
 	}
@@ -469,29 +471,87 @@ func TestRunAddLocal_NonGitDirectory(t *testing.T) {
 	}
 }
 
-// TestRunAddLocal_BasenameCollision verifies that if ~/.boxd/kits/<basename>
-// already exists, an error naming the conflict is returned.
+// TestRunAddLocal_BasenameCollision verifies that installing a second local
+// Kit Repo with the same basename surfaces a clear error pointing at --as.
 func TestRunAddLocal_BasenameCollision(t *testing.T) {
 	home := redirectHome(t)
 
-	srcDir := makeLocalKitRepo(t)
-	basename := filepath.Base(srcDir)
+	first := makeLocalKitRepo(t)
+	basename := filepath.Base(first)
 
-	// Pre-create the collision target.
-	collisionPath := filepath.Join(home, ".boxd", "kits", basename)
-	if err := os.MkdirAll(collisionPath, 0o755); err != nil {
-		t.Fatal(err)
+	// Install the first one normally.
+	if err := runAddLocal(first, ""); err != nil {
+		t.Fatalf("first runAddLocal: %v", err)
 	}
 
-	err := runAddLocal(srcDir)
+	// Build a second repo with the same basename in a different parent dir.
+	secondParent := t.TempDir()
+	secondDir := filepath.Join(secondParent, basename)
+	if err := os.MkdirAll(secondDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitExec(t, "-C", secondDir, "init")
+	gitExec(t, "-C", secondDir, "config", "user.email", "test@example.com")
+	gitExec(t, "-C", secondDir, "config", "user.name", "Test")
+	gitExec(t, "-C", secondDir, "commit", "--allow-empty", "-m", "empty")
+
+	err := runAddLocal(secondDir, "")
 	if err == nil {
 		t.Fatal("expected error for basename collision")
+	}
+	if !strings.Contains(err.Error(), "--as") {
+		t.Errorf("error should mention '--as'; got: %v", err)
 	}
 	if !strings.Contains(err.Error(), basename) {
 		t.Errorf("error should name the conflicting basename; got: %v", err)
 	}
-	if !strings.Contains(err.Error(), "already exists") {
-		t.Errorf("error should mention 'already exists'; got: %v", err)
+
+	// And nothing was written for the second repo.
+	_ = home
+}
+
+// TestRunAddLocal_WithAsAlias verifies that --as <alias> lets a colliding-
+// basename Local Kit Repo be installed under a different identifier.
+func TestRunAddLocal_WithAsAlias(t *testing.T) {
+	home := redirectHome(t)
+	lockPath := filepath.Join(home, ".boxd", "boxd.lock.json")
+
+	first := makeLocalKitRepo(t)
+	if err := runAddLocal(first, ""); err != nil {
+		t.Fatalf("first runAddLocal: %v", err)
+	}
+
+	// Second repo with the same basename, installed with --as.
+	secondParent := t.TempDir()
+	secondDir := filepath.Join(secondParent, filepath.Base(first))
+	if err := os.MkdirAll(filepath.Join(secondDir, "kitB"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(secondDir, "kitB", "spec.yaml"), []byte("displayName: kitB\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitExec(t, "-C", secondDir, "init")
+	gitExec(t, "-C", secondDir, "config", "user.email", "test@example.com")
+	gitExec(t, "-C", secondDir, "config", "user.name", "Test")
+	gitExec(t, "-C", secondDir, "add", ".")
+	gitExec(t, "-C", secondDir, "commit", "-m", "second")
+
+	if err := runAddLocal(secondDir, "second-repo"); err != nil {
+		t.Fatalf("runAddLocal with --as: %v", err)
+	}
+
+	wantKey := "local/second-repo"
+	wantPath := filepath.Join(home, ".boxd", "kits", "local", "second-repo")
+	if _, err := os.Lstat(wantPath); err != nil {
+		t.Fatalf("symlink not found at %s: %v", wantPath, err)
+	}
+	s, _ := lockfile.Load(lockPath)
+	entry, ok := s.Get(wantKey)
+	if !ok {
+		t.Fatalf("lockfile entry missing for key %q", wantKey)
+	}
+	if entry.SourceURL != secondDir {
+		t.Errorf("SourceURL: got %q, want %q", entry.SourceURL, secondDir)
 	}
 }
 
@@ -514,14 +574,14 @@ func TestRunAddLocal_RelativePath(t *testing.T) {
 	}
 
 	relPath := "./" + filepath.Base(srcDir)
-	if err := runAddLocal(relPath); err != nil {
+	if err := runAddLocal(relPath, ""); err != nil {
 		t.Fatalf("runAddLocal with relative path: %v", err)
 	}
 
 	// The lockfile SourceURL must be the absolute path.
 	s, _ := lockfile.Load(lockPath)
 	basename := filepath.Base(srcDir)
-	entry, ok := s.Get(basename)
+	entry, ok := s.Get("local/" + basename)
 	if !ok {
 		t.Fatalf("lockfile entry missing")
 	}

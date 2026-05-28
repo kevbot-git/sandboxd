@@ -48,14 +48,13 @@ func init() {
 // stderr receives warning lines about orphaned selections.
 // lockPath and selPath are passed explicitly for testability.
 func runRemove(stderr io.Writer, lockPath, selPath, addrStr string) error {
-	// Check for a local entry by bare name (no slashes = could be a local repo basename).
-	if !strings.Contains(addrStr, "/") {
-		store, err := lockfile.Load(lockPath)
-		if err == nil {
-			if entry, ok := store.Get(addrStr); ok && entry.InstallMode == "local" {
-				return runRemoveLocalWhole(stderr, store, lockPath, selPath,
-					repo.Address{Key: addrStr}, entry)
-			}
+	// Try a direct lockfile-key lookup first. Local entries are keyed
+	// `local/<ident>` and remote entries `<host>/<user>/<repo>` — both can
+	// be passed verbatim, sidestepping repo.ParseAddress.
+	if store, err := lockfile.Load(lockPath); err == nil {
+		if entry, ok := store.Get(addrStr); ok {
+			return runRemoveWhole(stderr, store, lockPath, selPath,
+				repo.Address{Key: addrStr}, entry)
 		}
 	}
 

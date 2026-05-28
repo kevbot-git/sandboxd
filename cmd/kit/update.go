@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -95,10 +96,10 @@ func runUpdateAll(w io.Writer, lockPath string) error {
 
 // runUpdateOne updates the single lockfile entry identified by addrStr.
 func runUpdateOne(w io.Writer, lockPath string, addrStr string) error {
-	// Try direct key lookup first: local repos use the bare basename as their
-	// lockfile key and cannot be parsed as a remote address.
+	// Try a direct lockfile-key lookup first. Both local (`local/<ident>`)
+	// and remote (`<host>/<user>/<repo>`) keys can be passed verbatim.
 	if store, err := lockfile.Load(lockPath); err == nil {
-		if entry, ok := store.Get(addrStr); ok && entry.InstallMode == "local" {
+		if entry, ok := store.Get(addrStr); ok {
 			return updateEntry(w, os.Stderr, store, addrStr, entry)
 		}
 	}
@@ -133,6 +134,9 @@ func updateEntry(w io.Writer, stderr io.Writer, store *lockfile.Store, key strin
 	if _, err := os.Stat(installDir); os.IsNotExist(err) {
 		if entry.SourceURL == "" {
 			return fmt.Errorf("%s: malformed lockfile entry (missing sourceUrl) — try 'boxd kit remove %s' and re-add it", key, key)
+		}
+		if err := os.MkdirAll(filepath.Dir(installDir), 0o755); err != nil {
+			return fmt.Errorf("%s: create parent dir: %w", key, err)
 		}
 		if err := git.Clone(entry.SourceURL, installDir); err != nil {
 			return fmt.Errorf("%s: clone: %w", key, err)

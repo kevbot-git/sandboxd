@@ -16,11 +16,12 @@ import (
 )
 
 var addLocalFlag bool
+var addAsFlag string
 
 var addCmd = &cobra.Command{
 	Use:   "add <addr>",
 	Short: "Install a Kit Repo",
-	Long: `Install a Kit Repo by cloning it into ~/.boxd/kits/<repo>/.
+	Long: `Install a Kit Repo by cloning it into ~/.boxd/kits/<host>/<user>/<repo>/.
 
 <addr> can be one of:
   user/repo                  — short form (defaults to github.com)
@@ -31,11 +32,15 @@ All forms accept an optional /kit suffix which identifies a single kit
 within the repo; this performs a sparse checkout of only that kit.
 
 Use --local <path> to install a Local Kit Repo by symlinking it into
-~/.boxd/kits/<basename> rather than cloning it.`,
+~/.boxd/kits/local/<basename>/ rather than cloning it. On basename
+collision, pass --as <alias> to disambiguate.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if addLocalFlag {
-			return runAddLocal(args[0])
+			return runAddLocal(args[0], addAsFlag)
+		}
+		if addAsFlag != "" {
+			return fmt.Errorf("--as is only valid with --local")
 		}
 		return runAdd(args[0])
 	},
@@ -44,6 +49,7 @@ Use --local <path> to install a Local Kit Repo by symlinking it into
 func init() {
 	kitCmd.AddCommand(addCmd)
 	addCmd.Flags().BoolVar(&addLocalFlag, "local", false, "Install a Local Kit Repo by symlinking (no clone)")
+	addCmd.Flags().StringVar(&addAsFlag, "as", "", "Alias for a Local Kit Repo when its basename collides (only with --local)")
 }
 
 // resolvePath expands a leading ~ and makes the path absolute relative to
@@ -64,8 +70,10 @@ func resolvePath(path string) (string, error) {
 }
 
 // runAddLocal installs a Local Kit Repo by symlinking path into
-// ~/.boxd/kits/<basename>. No git write operations are performed on path.
-func runAddLocal(path string) error {
+// ~/.boxd/kits/local/<basename-or-alias>/. No git write operations are
+// performed on path. If alias is non-empty (from --as), it replaces the
+// basename in both the lockfile key and the symlink path.
+func runAddLocal(path string, alias string) error {
 	// 1. Resolve to absolute path.
 	absPath, err := resolvePath(path)
 	if err != nil {
@@ -78,13 +86,20 @@ func runAddLocal(path string) error {
 		return fmt.Errorf("%s: not a git repository", absPath)
 	}
 
-	// 3. Compute the basename and the symlink destination.
-	basename := filepath.Base(absPath)
+	// 3. Compute the identifier (alias or basename) and key/symlink paths.
+	ident := alias
+	if ident == "" {
+		ident = filepath.Base(absPath)
+	}
+	if strings.ContainsRune(ident, '/') || strings.ContainsRune(ident, filepath.Separator) {
+		return fmt.Errorf("--as %q: alias must not contain path separators", alias)
+	}
+	key := "local/" + ident
 	kitsRoot, err := kits.DefaultRoot()
 	if err != nil {
 		return fmt.Errorf("kits root: %w", err)
 	}
-	symlinkPath := filepath.Join(kitsRoot, basename)
+	symlinkPath := filepath.Join(kitsRoot, "local", ident)
 
 	// 4. Load the lockfile and check for a duplicate key.
 	lockPath, err := lockfile.DefaultPath()
@@ -95,17 +110,23 @@ func runAddLocal(path string) error {
 	if err != nil {
 		return fmt.Errorf("load lockfile: %w", err)
 	}
-	if _, exists := store.Get(basename); exists {
-		return fmt.Errorf("%s: already installed; use 'boxd kit update' to refresh", basename)
+	if existing, exists := store.Get(key); exists {
+		if existing.SourceURL == absPath {
+			return fmt.Errorf("%s: already installed; use 'boxd kit update' to refresh", key)
+		}
+		if alias == "" {
+			return fmt.Errorf("%s: basename collides with existing local Kit Repo at %s — re-run with --as <alias> to disambiguate", key, existing.SourceURL)
+		}
+		return fmt.Errorf("%s: already installed pointing at %s — pick a different --as alias", key, existing.SourceURL)
 	}
 
 	// 5. Check that the symlink destination doesn't already exist.
 	if _, err := os.Lstat(symlinkPath); err == nil {
-		return fmt.Errorf("%s: already exists at %s", basename, symlinkPath)
+		return fmt.Errorf("%s: already exists at %s", key, symlinkPath)
 	}
 
-	// 6. Create the kits root directory (if needed) and symlink.
-	if err := os.MkdirAll(kitsRoot, 0o755); err != nil {
+	// 6. Create the parent directory (~/.boxd/kits/local/) and symlink.
+	if err := os.MkdirAll(filepath.Dir(symlinkPath), 0o755); err != nil {
 		return fmt.Errorf("create kits root: %w", err)
 	}
 	if err := os.Symlink(absPath, symlinkPath); err != nil {
@@ -125,7 +146,7 @@ func runAddLocal(path string) error {
 
 	// 8. Write the lockfile entry.
 	now := time.Now().UTC()
-	store.Set(basename, lockfile.Entry{
+	store.Set(key, lockfile.Entry{
 		SourceURL:   absPath,
 		Commit:      commit,
 		InstallDir:  symlinkPath,
@@ -146,7 +167,7 @@ func runAddLocal(path string) error {
 	if kitList == "" {
 		kitList = "(none)"
 	}
-	fmt.Printf("installed %s @ %s [local] (%d kits: %s)\n", basename, shortSHA, len(kitNames), kitList)
+	fmt.Printf("installed %s @ %s [local] (%d kits: %s)\n", key, shortSHA, len(kitNames), kitList)
 	return nil
 }
 
@@ -224,10 +245,14 @@ func runSparseInstall(addr repo.Address, store *lockfile.Store, lockPath string)
 	if err != nil {
 		return fmt.Errorf("kits root: %w", err)
 	}
-	installDir := filepath.Join(kitsRoot, addr.Repo)
+	installDir := filepath.Join(kitsRoot, addr.Host, addr.User, addr.Repo)
 
 	if _, err := os.Stat(installDir); err == nil {
-		return fmt.Errorf("%s: directory exists; refusing to overwrite — remove it manually or pick a different name", addr.Repo)
+		return fmt.Errorf("%s: directory exists; refusing to overwrite — remove it manually or pick a different name", addr.Key)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(installDir), 0o755); err != nil {
+		return fmt.Errorf("create kits root: %w", err)
 	}
 
 	if err := git.CloneNoCheckout(addr.SourceURL, installDir); err != nil {
@@ -353,16 +378,21 @@ func runConvertSparseToFull(
 
 // runFullInstall handles Case E: fresh full install (the original behavior).
 func runFullInstall(addr repo.Address, store *lockfile.Store, lockPath string) error {
-	// Compute install directory: ~/.boxd/kits/<repo>
+	// Compute install directory: ~/.boxd/kits/<host>/<user>/<repo>
 	kitsRoot, err := kits.DefaultRoot()
 	if err != nil {
 		return fmt.Errorf("kits root: %w", err)
 	}
-	installDir := filepath.Join(kitsRoot, addr.Repo)
+	installDir := filepath.Join(kitsRoot, addr.Host, addr.User, addr.Repo)
 
 	// Error if the install directory already exists.
 	if _, err := os.Stat(installDir); err == nil {
-		return fmt.Errorf("%s: directory exists; refusing to overwrite — remove it manually or pick a different name", addr.Repo)
+		return fmt.Errorf("%s: directory exists; refusing to overwrite — remove it manually or pick a different name", addr.Key)
+	}
+
+	// Ensure the parent dir exists (<host>/<user>/).
+	if err := os.MkdirAll(filepath.Dir(installDir), 0o755); err != nil {
+		return fmt.Errorf("create kits root: %w", err)
 	}
 
 	// Clone the repo.

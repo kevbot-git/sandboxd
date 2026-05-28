@@ -74,6 +74,9 @@ func runInstall(w io.Writer, stderr io.Writer, lockPath string) error {
 		info, statErr := os.Stat(entry.InstallDir)
 		if statErr != nil || !info.IsDir() {
 			// installDir doesn't exist: clone then reset.
+			if err := os.MkdirAll(filepath.Dir(entry.InstallDir), 0o755); err != nil {
+				return fmt.Errorf("%s: create parent dir: %w", key, err)
+			}
 			if err := git.Clone(entry.SourceURL, entry.InstallDir); err != nil {
 				return fmt.Errorf("%s: clone failed: %w", key, err)
 			}
