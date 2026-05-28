@@ -11,10 +11,16 @@ The project is called `sandboxd` (the repo, the Homebrew tap, the Go module); th
 Requires [`sbx`](https://github.com/docker/sbx-releases) on your `PATH`.
 
 ```bash
-go install github.com/kevbot-git/sandboxd/cmd/boxd@latest
+brew install kevbot-git/sandboxd/sandboxd
 ```
 
-A Homebrew tap (`kevbot-git/homebrew-sandboxd`) is planned but not yet wired up. Once it ships, `brew install kevbot-git/sandboxd/sandboxd` will install the `boxd` binary.
+This installs the `boxd` binary onto your `PATH` (formula name `sandboxd`, binary name `boxd` — same idea as `brew install aws-cli` giving you the `aws` command).
+
+Alternatively, via Go:
+
+```bash
+go install github.com/kevbot-git/sandboxd/cmd/boxd@latest
+```
 
 ## Quick start
 
